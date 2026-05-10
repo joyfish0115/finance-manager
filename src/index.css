@@ -1,0 +1,79 @@
+@import 'tailwindcss';
+
+@theme {
+  /* 主色：紫色，從 PROJECT_BRIEF 帶來 */
+  --color-brand-50: #f4f2ff;
+  --color-brand-100: #ebe7ff;
+  --color-brand-200: #d8d1ff;
+  --color-brand-300: #bbafff;
+  --color-brand-400: #9b87ff;
+  --color-brand-500: #7c6fff;
+  --color-brand-600: #6651f0;
+  --color-brand-700: #5640d4;
+  --color-brand-800: #4636aa;
+  --color-brand-900: #3b3088;
+
+  /* 深色主題的中性色 */
+  --color-surface-0: #0d0e13;
+  --color-surface-1: #16171d;
+  --color-surface-2: #1f2028;
+  --color-surface-3: #2a2c36;
+  --color-surface-border: #2e303a;
+
+  --color-ink-high: #f3f4f6;
+  --color-ink-mid: #9ca3af;
+  --color-ink-low: #6b7280;
+
+  /* 金額用語意色 */
+  --color-positive: #34d399;
+  --color-negative: #f87171;
+
+  /* 字體 */
+  --font-sans: 'DM Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'DM Mono', ui-monospace, monospace;
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-surface-0 text-ink-mid font-sans antialiased min-h-screen;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply text-ink-high font-medium;
+  }
+
+  /* 金額專用：用等寬字體對齊 */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Material Symbols 圖示基本設定 */
+  .material-symbols-rounded {
+    font-family: 'Material Symbols Rounded';
+    font-weight: normal;
+    font-style: normal;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-feature-settings: 'liga';
+    font-feature-settings: 'liga';
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+    font-variation-settings:
+      'FILL' 0,
+      'wght' 400,
+      'GRAD' 0,
+      'opsz' 24;
+  }
+}
