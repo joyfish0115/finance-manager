@@ -5,6 +5,7 @@ import { RequireAuth } from '@/components/RequireAuth'
 import { Dashboard } from '@/pages/Dashboard'
 import { Accounts } from '@/pages/Accounts'
 import { Transactions } from '@/pages/Transactions'
+import { TransactionForm } from '@/pages/TransactionForm'
 import { SettingsPage } from '@/pages/Settings'
 import { Welcome } from '@/pages/Welcome'
 import { useBootstrap } from '@/hooks/useBootstrap'
@@ -25,6 +26,9 @@ const router = createHashRouter([
     element: <RequireAuth />,
     children: [
       { path: '/welcome', element: <Welcome /> },
+      // 新增/編輯記帳：全螢幕頁面（沒有 AppLayout 的 tab bar）
+      { path: '/transactions/new', element: <TransactionForm /> },
+      { path: '/transactions/:id/edit', element: <TransactionForm /> },
       {
         path: '/',
         element: <AppLayout />,

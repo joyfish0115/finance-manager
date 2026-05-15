@@ -1,12 +1,14 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Settings as SettingsIcon, Loader2 } from 'lucide-react'
+import { Settings as SettingsIcon, Loader2, Eye, EyeOff } from 'lucide-react'
 import { format } from 'date-fns'
 import { PageHeader } from '@/components/PageHeader'
 import { SubTabs } from '@/components/SubTabs'
-import { formatCurrency } from '@/lib/format'
+import { MonthlyReport } from '@/components/report/MonthlyReport'
+import { formatCurrency, formatCurrencyMaybeHidden } from '@/lib/format'
 import { useAccounts } from '@/hooks/useAccounts'
 import { useTransactions } from '@/hooks/useTransactions'
 import { useRecurring } from '@/hooks/useRecurring'
+import { usePrivacyStore } from '@/stores/usePrivacyStore'
 
 const TABS = [
   { to: '/', label: '概覽', end: true },
@@ -46,6 +48,8 @@ function OverviewView() {
   const { data: accounts, isLoading: accountsLoading } = useAccounts()
   const { data: transactions, isLoading: txLoading } = useTransactions()
   const { data: recurring, isLoading: recurringLoading } = useRecurring()
+  const hidden = usePrivacyStore((s) => s.hidden)
+  const togglePrivacy = usePrivacyStore((s) => s.toggle)
 
   const total = accounts?.reduce((sum, a) => sum + a.balance, 0) ?? 0
   const monthKey = format(new Date(), 'yyyy-MM')
@@ -71,9 +75,20 @@ function OverviewView() {
       <div className="px-5 md:px-8 py-6 grid gap-4 md:grid-cols-3">
         <SummaryCard
           label="總資產"
-          value={accountsLoading ? '—' : formatCurrency(total)}
+          value={accountsLoading ? '—' : formatCurrencyMaybeHidden(total, hidden)}
           accent
           loading={accountsLoading}
+          action={
+            <button
+              type="button"
+              onClick={togglePrivacy}
+              aria-label={hidden ? '顯示金額' : '隱藏金額'}
+              title={hidden ? '顯示金額' : '隱藏金額'}
+              className="p-1 -m-1 rounded text-ink-low hover:text-ink-high transition-colors"
+            >
+              {hidden ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          }
         />
         <SummaryCard
           label="本月固定支出"
@@ -107,7 +122,7 @@ function OverviewView() {
                     )}
                   </div>
                   <span className="font-mono text-sm text-ink-high tabular-nums shrink-0">
-                    {formatCurrency(acc.balance)}
+                    {formatCurrencyMaybeHidden(acc.balance, hidden)}
                   </span>
                 </li>
               ))}
@@ -162,18 +177,7 @@ function OverviewView() {
 // ─── 月報 ───────────────────────────────────────────────────────────────────
 
 function ReportView() {
-  return (
-    <div className="px-5 md:px-8 py-6 grid gap-4 md:grid-cols-3">
-      <SummaryCard label="收入總計" value={formatCurrency(0)} />
-      <SummaryCard label="支出總計" value={formatCurrency(0)} />
-      <SummaryCard label="收支結餘" value={formatCurrency(0)} accent />
-      <div className="md:col-span-3">
-        <Panel title="支出分類">
-          <p className="text-sm text-ink-mid">圓餅圖（待開發）</p>
-        </Panel>
-      </div>
-    </div>
-  )
+  return <MonthlyReport />
 }
 
 // ─── 共用元件 ────────────────────────────────────────────────────────────────
@@ -183,11 +187,14 @@ function SummaryCard({
   value,
   accent,
   loading,
+  action,
 }: {
   label: string
   value: string
   accent?: boolean
   loading?: boolean
+  /** 卡片右上角的操作元素（例如隱藏金額的眼睛按鈕） */
+  action?: React.ReactNode
 }) {
   return (
     <div
@@ -195,7 +202,10 @@ function SummaryCard({
         accent ? 'border-brand-500/30' : 'border-surface-border'
       }`}
     >
-      <div className="text-xs uppercase tracking-wider text-ink-low">{label}</div>
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-xs uppercase tracking-wider text-ink-low">{label}</div>
+        {action}
+      </div>
       <div
         className={`mt-2 font-mono text-2xl tabular-nums ${
           loading ? 'text-ink-low' : accent ? 'text-brand-300' : 'text-ink-high'

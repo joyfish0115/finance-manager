@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   fetchTransactions,
   addTransaction,
+  updateTransaction,
   deleteTransaction,
   type TransactionWithRow,
 } from '@/lib/google/transactionsApi'
@@ -20,6 +21,15 @@ export function useAddTransaction() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (data: Omit<Transaction, 'id'>) => addTransaction(data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: TRANSACTIONS_KEY }),
+  })
+}
+
+export function useUpdateTransaction() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ rowIndex, data }: { rowIndex: number; data: Transaction }) =>
+      updateTransaction(rowIndex, data),
     onSuccess: () => qc.invalidateQueries({ queryKey: TRANSACTIONS_KEY }),
   })
 }

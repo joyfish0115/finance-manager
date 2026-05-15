@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { MoreVertical, Pencil, Trash2 } from 'lucide-react'
-import { formatCurrency } from '@/lib/format'
+import { formatCurrencyMaybeHidden } from '@/lib/format'
 import { Button } from '@/components/ui/Button'
+import { usePrivacyStore } from '@/stores/usePrivacyStore'
 import type { AccountWithRow } from '@/lib/google/accountsApi'
 
 const TYPE_COLORS: Record<string, string> = {
@@ -31,6 +32,7 @@ export function AccountCard({
 }: Props) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const hidden = usePrivacyStore((s) => s.hidden)
   const typeColor = TYPE_COLORS[account.type] ?? 'text-ink-mid bg-surface-2'
 
   // ── 確認刪除狀態 ──────────────────────────────────────────────────────────
@@ -82,7 +84,7 @@ export function AccountCard({
           {account.bank}
         </h3>
         <span className="font-mono text-lg font-medium text-ink-high tabular-nums shrink-0">
-          {formatCurrency(account.balance)}
+          {formatCurrencyMaybeHidden(account.balance, hidden)}
         </span>
       </div>
 

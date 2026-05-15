@@ -6,7 +6,7 @@
  */
 
 import { GOOGLE_CONFIG } from './config'
-import { readSheetRows, appendRow, deleteSheetRow } from './sheets'
+import { readSheetRows, appendRow, updateRow, deleteSheetRow } from './sheets'
 import type { Transaction, TransactionKind, TransactionCategory } from '@/types'
 
 const SHEET = GOOGLE_CONFIG.sheets.transactions
@@ -47,6 +47,14 @@ export async function addTransaction(data: Omit<Transaction, 'id'>): Promise<voi
   const id = crypto.randomUUID()
   const t: Transaction = { id, ...data }
   await appendRow(SHEET, transactionToRow(t))
+}
+
+/** 更新一筆記帳（需指定原本的 _row 與完整資料） */
+export async function updateTransaction(
+  rowIndex: number,
+  data: Transaction,
+): Promise<void> {
+  await updateRow(SHEET, rowIndex, transactionToRow(data))
 }
 
 /** 刪除一筆記帳 */

@@ -1,10 +1,9 @@
-import { useState } from 'react'
 import { Plus, Loader2, AlertCircle } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { format, parseISO } from 'date-fns'
 import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { TransactionItem } from '@/components/transactions/TransactionItem'
-import { TransactionFormModal } from '@/components/transactions/TransactionFormModal'
 import { useTransactions, useDeleteTransaction, groupByDate } from '@/hooks/useTransactions'
 import { formatCurrency } from '@/lib/format'
 
@@ -20,9 +19,11 @@ function formatDateHeader(dateStr: string): string {
 }
 
 export function Transactions() {
+  const navigate = useNavigate()
   const { data: transactions, isLoading, error } = useTransactions()
   const deleteMut = useDeleteTransaction()
-  const [addOpen, setAddOpen] = useState(false)
+
+  const openAdd = () => navigate('/transactions/new')
 
   const monthKey = format(new Date(), 'yyyy-MM')
   const monthlyExpense =
@@ -41,7 +42,7 @@ export function Transactions() {
           /* 桌面版：標題右側的新增按鈕 */
           <button
             type="button"
-            onClick={() => setAddOpen(true)}
+            onClick={() => openAdd()}
             className="hidden md:flex items-center gap-1.5 rounded-lg bg-brand-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-400 transition-colors"
           >
             <Plus size={15} />
@@ -74,7 +75,7 @@ export function Transactions() {
         {!isLoading && !error && transactions?.length === 0 && (
           <div className="flex flex-col items-center py-20 text-center text-ink-mid">
             <p className="text-base mb-6">還沒有記帳紀錄</p>
-            <Button onClick={() => setAddOpen(true)}>
+            <Button onClick={() => openAdd()}>
               <Plus size={16} />
               新增第一筆
             </Button>
@@ -128,14 +129,13 @@ export function Transactions() {
       {/* 手機 FAB — 固定在底部導覽列上方 */}
       <button
         type="button"
-        onClick={() => setAddOpen(true)}
+        onClick={() => openAdd()}
         className="md:hidden fixed bottom-[76px] right-5 z-30 w-14 h-14 rounded-full bg-brand-500 text-white shadow-lg shadow-brand-500/30 hover:bg-brand-400 active:bg-brand-600 flex items-center justify-center transition-colors"
         aria-label="新增記帳"
       >
         <Plus size={26} />
       </button>
 
-      {addOpen && <TransactionFormModal onClose={() => setAddOpen(false)} />}
     </>
   )
 }

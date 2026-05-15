@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useLocation } from 'react-router-dom'
-import { Plus, Loader2, AlertCircle } from 'lucide-react'
+import { Plus, Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react'
 import { PageHeader } from '@/components/PageHeader'
 import { SubTabs } from '@/components/SubTabs'
 import { Button } from '@/components/ui/Button'
@@ -11,7 +11,8 @@ import { RecurringItem } from '@/components/recurring/RecurringItem'
 import { RecurringFormModal } from '@/components/recurring/RecurringFormModal'
 import { useAccounts, useDeleteAccount } from '@/hooks/useAccounts'
 import { useRecurring, useDeleteRecurring } from '@/hooks/useRecurring'
-import { formatCurrency } from '@/lib/format'
+import { formatCurrency, formatCurrencyMaybeHidden } from '@/lib/format'
+import { usePrivacyStore } from '@/stores/usePrivacyStore'
 import type { AccountWithRow } from '@/lib/google/accountsApi'
 import type { RecurringWithRow } from '@/lib/google/recurringApi'
 
@@ -49,6 +50,8 @@ export function Accounts() {
 function AccountsView() {
   const { data: accounts, isLoading, error } = useAccounts()
   const deleteMut = useDeleteAccount()
+  const hidden = usePrivacyStore((s) => s.hidden)
+  const togglePrivacy = usePrivacyStore((s) => s.toggle)
 
   const [addOpen, setAddOpen] = useState(false)
   const [editAccount, setEditAccount] = useState<AccountWithRow | null>(null)
@@ -85,9 +88,20 @@ function AccountsView() {
         {/* 總資產卡片 */}
         {accounts && accounts.length > 0 && (
           <div className="mb-5 rounded-xl border border-brand-500/30 bg-surface-1 p-5">
-            <div className="text-xs uppercase tracking-wider text-ink-low">總資產</div>
+            <div className="flex items-center justify-between gap-2">
+              <div className="text-xs uppercase tracking-wider text-ink-low">總資產</div>
+              <button
+                type="button"
+                onClick={togglePrivacy}
+                aria-label={hidden ? '顯示金額' : '隱藏金額'}
+                title={hidden ? '顯示金額' : '隱藏金額'}
+                className="p-1 -m-1 rounded text-ink-low hover:text-ink-high transition-colors"
+              >
+                {hidden ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
             <div className="mt-1.5 font-mono text-2xl text-brand-300 tabular-nums">
-              {formatCurrency(total)}
+              {formatCurrencyMaybeHidden(total, hidden)}
             </div>
             <div className="mt-1 text-xs text-ink-low">{accounts.length} 個帳戶</div>
           </div>
