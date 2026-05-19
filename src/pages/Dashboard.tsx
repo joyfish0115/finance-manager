@@ -112,16 +112,19 @@ function OverviewView() {
               <span className="text-xs">載入中…</span>
             </div>
           ) : accounts && accounts.length > 0 ? (
-            <ul className="space-y-2.5">
+            <ul className="space-y-4">
               {accounts.map((acc) => (
                 <li key={acc.id} className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <span className="text-sm text-ink-high truncate block">{acc.bank}</span>
-                    {acc.name && (
-                      <span className="text-xs text-ink-low truncate block">{acc.name}</span>
-                    )}
+                    <span className="text-base text-ink-high truncate block leading-tight">
+                      {acc.bank}
+                    </span>
+                    {/* 用 min-h 保留固定空間，沒有暱稱時也維持兩行高度 */}
+                    <span className="text-sm text-ink-low truncate block leading-tight min-h-[1.25rem] mt-0.5">
+                      {acc.name || ' '}
+                    </span>
                   </div>
-                  <span className="font-mono text-sm text-ink-high tabular-nums shrink-0">
+                  <span className="font-mono text-base text-ink-high tabular-nums shrink-0">
                     {formatCurrencyMaybeHidden(acc.balance, hidden)}
                   </span>
                 </li>
@@ -145,16 +148,16 @@ function OverviewView() {
               <span className="text-xs">載入中…</span>
             </div>
           ) : upcoming.length > 0 ? (
-            <ul className="space-y-2.5">
+            <ul className="space-y-4">
               {upcoming.map((r) => (
                 <li key={r.id} className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
-                    <span className="font-mono text-xs text-ink-low w-7 shrink-0">
+                    <span className="font-mono text-sm text-ink-low w-8 shrink-0">
                       {r.dayOfMonth}號
                     </span>
-                    <span className="text-sm text-ink-high truncate">{r.name}</span>
+                    <span className="text-base text-ink-high truncate">{r.name}</span>
                   </div>
-                  <span className="font-mono text-sm text-ink-high tabular-nums shrink-0">
+                  <span className="font-mono text-base text-ink-high tabular-nums shrink-0">
                     {formatCurrency(r.amount)}
                   </span>
                 </li>
@@ -220,7 +223,7 @@ function SummaryCard({
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="rounded-xl border border-surface-border bg-surface-1 p-5">
-      <h2 className="text-base font-medium mb-3">{title}</h2>
+      <h2 className="text-lg font-medium mb-4">{title}</h2>
       {children}
     </div>
   )

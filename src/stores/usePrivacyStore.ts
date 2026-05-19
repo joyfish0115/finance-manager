@@ -4,7 +4,8 @@ import { create } from 'zustand'
  * 隱私模式：開啟時把金額相關數字（總資產、帳戶餘額）變成 ••••••
  * 用於別人在旁邊看螢幕時的快速遮蔽。
  *
- * 不做 localStorage 持久化——每次重新打開 App 都預設為「顯示」。
+ * 不做 localStorage 持久化——每次重新打開 App 都預設為「隱藏」，
+ * 主動按眼睛圖示才會顯示真實金額。
  */
 interface PrivacyState {
   hidden: boolean
@@ -12,6 +13,6 @@ interface PrivacyState {
 }
 
 export const usePrivacyStore = create<PrivacyState>((set) => ({
-  hidden: false,
+  hidden: true,
   toggle: () => set((s) => ({ hidden: !s.hidden })),
 }))

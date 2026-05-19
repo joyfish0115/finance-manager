@@ -42,6 +42,15 @@
     @apply bg-surface-0 text-ink-mid font-sans antialiased min-h-screen;
   }
 
+  /* 隱藏所有 scrollbar（畫面更乾淨，捲動行為不受影響） */
+  * {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE / 舊 Edge */
+  }
+  *::-webkit-scrollbar {
+    display: none; /* Chrome / Safari / Edge */
+  }
+
   /* iOS Safari 在 input 字體 < 16px 時會自動 zoom in。
      強制最小 16px 字體可阻止此行為（桌機仍可用 text-sm 等覆蓋）。*/
   @media (max-width: 767px) {
