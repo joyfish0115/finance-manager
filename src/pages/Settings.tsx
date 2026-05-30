@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom'
-import { ChevronLeft, ExternalLink } from 'lucide-react'
+import { ChevronLeft, ExternalLink, RefreshCw, CheckCircle2, AlertCircle } from 'lucide-react'
+import { format } from 'date-fns'
 import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { GOOGLE_CONFIG } from '@/lib/google/config'
 import { useAuthStore } from '@/stores/useAuthStore'
+import { usePendingCount, useLastSyncedAt, useSyncNow } from '@/hooks/useSync'
 
 export function SettingsPage() {
   const signOut = useAuthStore((s) => s.signOut)
@@ -28,6 +30,8 @@ export function SettingsPage() {
       <PageHeader title="設定" subtitle="Google 帳號連接與資料同步" />
 
       <div className="px-5 md:px-8 py-6 space-y-4 max-w-2xl">
+        <SyncSection />
+
         <div className="rounded-xl border border-surface-border bg-surface-1 p-5">
           <h2 className="text-base mb-3">資料儲存位置</h2>
           <a
@@ -56,5 +60,72 @@ export function SettingsPage() {
         </div>
       </div>
     </>
+  )
+}
+
+// ─── 同步區塊 ────────────────────────────────────────────────────────────────
+
+function SyncSection() {
+  const { data: pending = 0 } = usePendingCount()
+  const { data: lastSyncedAt } = useLastSyncedAt()
+  const sync = useSyncNow()
+
+  const hasPending = pending > 0
+  const isSyncing = sync.isPending
+
+  const lastSyncedLabel = lastSyncedAt
+    ? format(new Date(lastSyncedAt), 'MM/dd HH:mm')
+    : '尚未同步過'
+
+  return (
+    <div className="rounded-xl border border-surface-border bg-surface-1 p-5">
+      <h2 className="text-base mb-3">同步</h2>
+
+      {/* 狀態列 */}
+      <div className="flex items-center gap-2 mb-2">
+        {hasPending ? (
+          <span className="inline-flex h-2 w-2 rounded-full bg-amber-400" />
+        ) : (
+          <CheckCircle2 size={16} className="text-positive" />
+        )}
+        <span className="text-sm text-ink-high">
+          {hasPending ? `待同步：${pending} 筆變動` : '全部已同步'}
+        </span>
+      </div>
+
+      <p className="text-xs text-ink-low mb-4">最後同步：{lastSyncedLabel}</p>
+
+      <Button
+        onClick={() => sync.mutate()}
+        disabled={isSyncing}
+        className="w-full"
+      >
+        {isSyncing ? (
+          <>
+            <RefreshCw size={16} className="animate-spin" />
+            同步中…
+          </>
+        ) : (
+          <>
+            <RefreshCw size={16} />
+            立即同步
+          </>
+        )}
+      </Button>
+
+      {sync.error && (
+        <div className="mt-3 flex gap-2 rounded-lg bg-negative/10 border border-negative/30 p-3">
+          <AlertCircle size={16} className="text-negative shrink-0 mt-0.5" />
+          <div className="text-xs text-negative break-words">
+            同步失敗：{String(sync.error)}
+          </div>
+        </div>
+      )}
+
+      <p className="mt-3 text-xs text-ink-low leading-relaxed">
+        平常記帳會先存在這台手機上，按下「立即同步」才會寫回 Google Sheet。
+        建議定期同步，避免清掉瀏覽器資料時遺失未同步的紀錄。
+      </p>
+    </div>
   )
 }

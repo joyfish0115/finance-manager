@@ -116,7 +116,7 @@ export function Transactions() {
                   <TransactionItem
                     key={t.id}
                     transaction={t}
-                    onDelete={() => deleteMut.mutate(t._row)}
+                    onDelete={() => deleteMut.mutate(t.id)}
                     isDeleting={deleteMut.isPending}
                   />
                 ))}

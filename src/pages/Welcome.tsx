@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Sparkles, AlertCircle } from 'lucide-react'
-import { signIn } from '@/lib/google/auth'
 import { GoogleLogo } from '@/components/ui/GoogleLogo'
 import { useAuthStore } from '@/stores/useAuthStore'
 
@@ -8,15 +7,17 @@ export function Welcome() {
   const [isPending, setIsPending] = useState(false)
   const authError = useAuthStore((s) => s.authError)
   const setAuthError = useAuthStore((s) => s.setAuthError)
+  const signIn = useAuthStore((s) => s.signIn)
 
   const handleSignIn = async () => {
     setIsPending(true)
     setAuthError(null)
     try {
-      await signIn() // 會 navigate 到 Google，不會 return
+      await signIn()
     } catch (err) {
       console.error(err)
-      setAuthError(err instanceof Error ? err.message : String(err))
+      // store.signIn 已經把錯誤寫進 authError，這裡只需收尾
+    } finally {
       setIsPending(false)
     }
   }
@@ -44,7 +45,7 @@ export function Welcome() {
           className="inline-flex items-center justify-center gap-3 w-full rounded-xl bg-white px-5 py-3.5 text-sm font-medium text-gray-800 shadow-sm hover:bg-gray-50 active:bg-gray-100 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
         >
           <GoogleLogo size={18} />
-          {isPending ? '正在前往 Google…' : '使用 Google 帳號登入'}
+          {isPending ? '登入中…' : '使用 Google 帳號登入'}
         </button>
 
         {authError && (
@@ -62,7 +63,7 @@ export function Welcome() {
         )}
 
         <ul className="mt-10 space-y-3 text-left text-xs text-ink-mid">
-          <Bullet>資料即時同步到您的 Google Sheet</Bullet>
+          <Bullet>離線可用，按按鈕才同步到您的 Google Sheet</Bullet>
           <Bullet>之後換手機或瀏覽器，登入即可繼續使用</Bullet>
           <Bullet>App 沒有後端，沒有任何人能看到您的資料</Bullet>
         </ul>

@@ -13,8 +13,7 @@ import { useAccounts, useDeleteAccount } from '@/hooks/useAccounts'
 import { useRecurring, useDeleteRecurring } from '@/hooks/useRecurring'
 import { formatCurrency, formatCurrencyMaybeHidden } from '@/lib/format'
 import { usePrivacyStore } from '@/stores/usePrivacyStore'
-import type { AccountWithRow } from '@/lib/google/accountsApi'
-import type { RecurringWithRow } from '@/lib/google/recurringApi'
+import type { Account, Recurring } from '@/types'
 
 const TABS = [
   { to: '/accounts', label: '帳戶餘額', end: true },
@@ -54,8 +53,8 @@ function AccountsView() {
   const togglePrivacy = usePrivacyStore((s) => s.toggle)
 
   const [addOpen, setAddOpen] = useState(false)
-  const [editAccount, setEditAccount] = useState<AccountWithRow | null>(null)
-  const [balanceAccount, setBalanceAccount] = useState<AccountWithRow | null>(null)
+  const [editAccount, setEditAccount] = useState<Account | null>(null)
+  const [balanceAccount, setBalanceAccount] = useState<Account | null>(null)
 
   const total = accounts?.reduce((sum, a) => sum + a.balance, 0) ?? 0
 
@@ -113,9 +112,10 @@ function AccountsView() {
             <AccountCard
               key={account.id}
               account={account}
+              percentage={total > 0 ? (account.balance / total) * 100 : 0}
               onEditBalance={() => setBalanceAccount(account)}
               onEdit={() => setEditAccount(account)}
-              onDelete={() => deleteMut.mutate(account._row)}
+              onDelete={() => deleteMut.mutate(account.id)}
               isDeleting={deleteMut.isPending}
             />
           ))}
@@ -175,7 +175,7 @@ function RecurringView() {
   const deleteMut = useDeleteRecurring()
 
   const [addOpen, setAddOpen] = useState(false)
-  const [editItem, setEditItem] = useState<RecurringWithRow | null>(null)
+  const [editItem, setEditItem] = useState<Recurring | null>(null)
 
   // 分組：固定支出 vs 投資
   const fixedExpenses = recurring?.filter((r) => r.kind === '固定支出') ?? []
@@ -238,7 +238,7 @@ function RecurringView() {
                 recurring={r}
                 accounts={accounts ?? []}
                 onEdit={() => setEditItem(r)}
-                onDelete={() => deleteMut.mutate(r._row)}
+                onDelete={() => deleteMut.mutate(r.id)}
                 isDeleting={deleteMut.isPending}
               />
             ))}
@@ -257,7 +257,7 @@ function RecurringView() {
                 recurring={r}
                 accounts={accounts ?? []}
                 onEdit={() => setEditItem(r)}
-                onDelete={() => deleteMut.mutate(r._row)}
+                onDelete={() => deleteMut.mutate(r.id)}
                 isDeleting={deleteMut.isPending}
               />
             ))}

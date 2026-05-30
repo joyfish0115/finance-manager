@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { Button } from '@/components/ui/Button'
 import { useAddAccount, useUpdateAccount } from '@/hooks/useAccounts'
-import type { AccountWithRow } from '@/lib/google/accountsApi'
+import type { Account } from '@/types'
 
 const ACCOUNT_TYPES = ['活存', '定存', '證券戶', '基金帳戶'] as const
 
@@ -21,7 +21,7 @@ type FormValues = z.infer<typeof schema>
 
 interface Props {
   /** 傳入帳戶 → 編輯模式；不傳 → 新增模式 */
-  account?: AccountWithRow
+  account?: Account
   onClose: () => void
 }
 

@@ -1,46 +1,60 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import {
-  fetchAccounts,
-  addAccount,
-  updateAccount,
-  deleteAccount,
-  type AccountWithRow,
-} from '@/lib/google/accountsApi'
+import { db } from '@/lib/db/schema'
 import type { Account } from '@/types'
 
 export const ACCOUNTS_KEY = ['accounts'] as const
 
-/** 讀取所有帳戶 */
+async function fetchLocalAccounts(): Promise<Account[]> {
+  const rows = await db.accounts
+    .where('syncStatus')
+    .notEqual('pending-delete')
+    .toArray()
+  return rows.map(({ syncStatus: _s, ...a }) => a)
+}
+
 export function useAccounts() {
   return useQuery({
     queryKey: ACCOUNTS_KEY,
-    queryFn: fetchAccounts,
+    queryFn: fetchLocalAccounts,
   })
 }
 
-/** 新增帳戶 */
 export function useAddAccount() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (data: Omit<Account, 'id'>) => addAccount(data),
+    mutationFn: async (data: Omit<Account, 'id'>) => {
+      const id = crypto.randomUUID()
+      await db.accounts.add({ id, ...data, syncStatus: 'pending-create' })
+    },
     onSuccess: () => qc.invalidateQueries({ queryKey: ACCOUNTS_KEY }),
   })
 }
 
-/** 更新帳戶（含餘額） */
 export function useUpdateAccount() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (acc: AccountWithRow) => updateAccount(acc),
+    mutationFn: async (data: Account) => {
+      const existing = await db.accounts.get(data.id)
+      const nextStatus =
+        existing?.syncStatus === 'pending-create' ? 'pending-create' : 'pending-update'
+      await db.accounts.put({ ...data, syncStatus: nextStatus })
+    },
     onSuccess: () => qc.invalidateQueries({ queryKey: ACCOUNTS_KEY }),
   })
 }
 
-/** 刪除帳戶 */
 export function useDeleteAccount() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (rowIndex: number) => deleteAccount(rowIndex),
+    mutationFn: async (id: string) => {
+      const existing = await db.accounts.get(id)
+      if (!existing) return
+      if (existing.syncStatus === 'pending-create') {
+        await db.accounts.delete(id)
+      } else {
+        await db.accounts.update(id, { syncStatus: 'pending-delete' })
+      }
+    },
     onSuccess: () => qc.invalidateQueries({ queryKey: ACCOUNTS_KEY }),
   })
 }

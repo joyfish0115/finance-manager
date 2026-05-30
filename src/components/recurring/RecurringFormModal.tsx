@@ -8,8 +8,7 @@ import { Select } from '@/components/ui/Select'
 import { Button } from '@/components/ui/Button'
 import { useAddRecurring, useUpdateRecurring, useDeleteRecurring } from '@/hooks/useRecurring'
 import { useAccounts } from '@/hooks/useAccounts'
-import type { RecurringWithRow } from '@/lib/google/recurringApi'
-import type { RecurringKind } from '@/types'
+import type { Recurring, RecurringKind } from '@/types'
 
 /** 把空字串轉成 undefined（給 z.number().optional() 用） */
 function toOptionalNumber(v: unknown): number | undefined {
@@ -35,7 +34,7 @@ type FormValues = z.infer<typeof schema>
 
 interface Props {
   /** 傳入則為編輯模式，否則為新增 */
-  recurring?: RecurringWithRow
+  recurring?: Recurring
   onClose: () => void
 }
 
@@ -122,7 +121,7 @@ export function RecurringFormModal({ recurring, onClose }: Props) {
       setConfirmDelete(true)
       return
     }
-    await del.mutateAsync(recurring._row)
+    await del.mutateAsync(recurring.id)
     onClose()
   }
 

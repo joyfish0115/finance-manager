@@ -8,7 +8,7 @@ interface Props {
 
 export function PageHeader({ title, subtitle, actions }: Props) {
   return (
-    <header className="flex items-start justify-between gap-4 px-5 md:px-8 pt-6 pb-4 border-b border-surface-border">
+    <header className="flex items-start justify-between gap-4 px-5 md:px-8 pt-[max(1.5rem,calc(env(safe-area-inset-top)+0.5rem))] md:pt-6 pb-4 border-b border-surface-border">
       <div>
         <h1 className="text-2xl font-semibold text-ink-high">{title}</h1>
         {subtitle && <p className="mt-1 text-sm text-ink-mid">{subtitle}</p>}

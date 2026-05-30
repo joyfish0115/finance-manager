@@ -4,13 +4,13 @@ import { Trash2 } from 'lucide-react'
 import { formatCurrency } from '@/lib/format'
 import { MaterialIcon } from '@/components/ui/MaterialIcon'
 import { getCategoryIcon } from '@/lib/categoryIcons'
-import type { TransactionWithRow } from '@/lib/google/transactionsApi'
+import type { Transaction } from '@/types'
 
 const REVEAL_WIDTH = 88 // 露出來的刪除按鈕寬度
 const SWIPE_THRESHOLD = 40 // 超過這個距離鬆開就維持露出狀態
 
 interface Props {
-  transaction: TransactionWithRow
+  transaction: Transaction
   onDelete: () => void
   isDeleting: boolean
 }

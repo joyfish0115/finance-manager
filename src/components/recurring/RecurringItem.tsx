@@ -2,19 +2,18 @@ import { useState } from 'react'
 import { MoreVertical, Pencil, Trash2 } from 'lucide-react'
 import { formatCurrency, formatPercent } from '@/lib/format'
 import { Button } from '@/components/ui/Button'
-import type { RecurringWithRow } from '@/lib/google/recurringApi'
-import type { AccountWithRow } from '@/lib/google/accountsApi'
+import type { Recurring, Account } from '@/types'
 
 interface Props {
-  recurring: RecurringWithRow
-  accounts: AccountWithRow[]
+  recurring: Recurring
+  accounts: Account[]
   onEdit: () => void
   onDelete: () => void
   isDeleting?: boolean
 }
 
 /** 把 accountId 對應到顯示用的「銀行・暱稱」字串 */
-function formatAccount(accounts: AccountWithRow[], accountId: string): string {
+function formatAccount(accounts: Account[], accountId: string): string {
   const acc = accounts.find((a) => a.id === accountId)
   if (!acc) return '（找不到帳戶）'
   return acc.name ? `${acc.bank}・${acc.name}` : acc.bank

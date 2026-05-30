@@ -36,7 +36,7 @@ src/
 │   ├── PageHeader.tsx  # 頁面標題列
 │   └── ui/             # 純 UI 元件（按鈕、輸入框等，待開發）
 ├── lib/
-│   ├── google/     # OAuth (PKCE) 與 Google Sheets API（待開發）
+│   ├── google/     # OAuth (GIS Token Model) 與 Google Sheets API
 │   ├── storage/    # localStorage 封裝
 │   └── format.ts   # 金額、百分比格式化
 ├── stores/         # Zustand 狀態

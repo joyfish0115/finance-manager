@@ -12,6 +12,7 @@ export type TransactionKind = '支出' | '收入'
 
 export const EXPENSE_CATEGORIES = [
   '飲食',
+  '飲料',
   '交通',
   '購物',
   '娛樂',

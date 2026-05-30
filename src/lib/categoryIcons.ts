@@ -5,6 +5,7 @@
 export const CATEGORY_ICON: Record<string, string> = {
   // 支出
   飲食: 'restaurant',
+  飲料: 'local_cafe',
   交通: 'directions_subway',
   購物: 'shopping_bag',
   娛樂: 'sports_esports',

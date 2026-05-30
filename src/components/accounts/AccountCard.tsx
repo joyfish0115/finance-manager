@@ -3,7 +3,7 @@ import { MoreVertical, Pencil, Trash2 } from 'lucide-react'
 import { formatCurrencyMaybeHidden } from '@/lib/format'
 import { Button } from '@/components/ui/Button'
 import { usePrivacyStore } from '@/stores/usePrivacyStore'
-import type { AccountWithRow } from '@/lib/google/accountsApi'
+import type { Account } from '@/types'
 
 const TYPE_COLORS: Record<string, string> = {
   活存: 'text-sky-400 bg-sky-400/10',
@@ -12,8 +12,17 @@ const TYPE_COLORS: Record<string, string> = {
   基金帳戶: 'text-amber-400 bg-amber-400/10',
 }
 
+const TYPE_FILL: Record<string, string> = {
+  活存: 'bg-sky-400',
+  定存: 'bg-teal-400',
+  證券戶: 'bg-brand-500',
+  基金帳戶: 'bg-amber-400',
+}
+
 interface Props {
-  account: AccountWithRow
+  account: Account
+  /** 此帳戶佔總資產的百分比（0–100） */
+  percentage: number
   /** 點卡片主體 → 快速更新餘額 */
   onEditBalance: () => void
   /** ⋮ 選單 → 編輯完整資料 */
@@ -25,6 +34,7 @@ interface Props {
 
 export function AccountCard({
   account,
+  percentage,
   onEditBalance,
   onEdit,
   onDelete,
@@ -34,6 +44,11 @@ export function AccountCard({
   const [confirmDelete, setConfirmDelete] = useState(false)
   const hidden = usePrivacyStore((s) => s.hidden)
   const typeColor = TYPE_COLORS[account.type] ?? 'text-ink-mid bg-surface-2'
+  const fillColor = TYPE_FILL[account.type] ?? 'bg-ink-low'
+
+  const pctClamped = Math.max(0, Math.min(100, percentage))
+  const pctLabel =
+    pctClamped === 0 ? '0%' : pctClamped < 1 ? '<1%' : `${Math.round(pctClamped)}%`
 
   // ── 確認刪除狀態 ──────────────────────────────────────────────────────────
   if (confirmDelete) {
@@ -43,7 +58,7 @@ export function AccountCard({
           確定要刪除「{account.bank}」？
         </p>
         <p className="text-xs text-ink-mid leading-relaxed">
-          這個帳戶的資料會從 Google Sheet 中移除，無法復原。
+          這個帳戶會在下次同步時從 Google Sheet 中移除，無法復原。
         </p>
         <div className="flex gap-2.5">
           <Button
@@ -88,17 +103,33 @@ export function AccountCard({
         </span>
       </div>
 
-      {/* 下排：類型標籤 + 暱稱 + ⋮ 選單 */}
-      <div className="mt-2 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 min-w-0">
-          <span
-            className={`px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${typeColor}`}
-          >
-            {account.type}
+      {/* 下排：類型標籤 + 暱稱 + 佔比進度條 + ⋮ 選單 */}
+      <div className="mt-2 flex items-center gap-2">
+        <span
+          className={`px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${typeColor}`}
+        >
+          {account.type}
+        </span>
+        {account.name && (
+          <span className="text-xs text-ink-mid truncate min-w-0">
+            {account.name}
           </span>
-          {account.name && (
-            <span className="text-xs text-ink-mid truncate">{account.name}</span>
-          )}
+        )}
+
+        {/* 佔比：細進度條 + 百分比數字 */}
+        <div
+          className="ml-auto flex items-center gap-2 shrink-0"
+          aria-label={`佔總資產 ${pctLabel}`}
+        >
+          <div className="w-12 h-1 bg-surface-2 rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full ${fillColor}`}
+              style={{ width: `${pctClamped}%` }}
+            />
+          </div>
+          <span className="text-xs text-ink-mid tabular-nums w-9 text-right">
+            {pctLabel}
+          </span>
         </div>
 
         <button

@@ -73,20 +73,22 @@ export function TransactionForm() {
 
   const categories = kind === '支出' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES
 
-  // 最近備註（同 kind、去重後最近 5 筆）
+  // 最近備註（選定分類後，只顯示該分類、同 kind、去重後最近 5 筆）
   const recentNotes = useMemo(() => {
+    if (!category) return []
     const seen = new Set<string>()
     const result: string[] = []
     for (const t of transactions ?? []) {
       if (!t.note) continue
       if (t.kind !== kind) continue
+      if (t.category !== category) continue
       if (seen.has(t.note)) continue
       seen.add(t.note)
       result.push(t.note)
       if (result.length >= 5) break
     }
     return result
-  }, [transactions, kind])
+  }, [transactions, kind, category])
 
   const isToday = isDateToday(date)
   const dateLabel = isToday
@@ -96,7 +98,7 @@ export function TransactionForm() {
   const calcHint = getCalcHint(calc)
   const displayAmount = `$${calc.current}`
 
-  async function handleSubmit() {
+  function handleSubmit() {
     setError(null)
     if (!category) {
       setError('請選擇分類')
@@ -108,46 +110,46 @@ export function TransactionForm() {
       return
     }
 
-    try {
-      if (isEdit && editing) {
-        await update.mutateAsync({
-          rowIndex: editing._row,
-          data: {
-            id: editing.id,
-            date: format(date, 'yyyy-MM-dd'),
-            kind,
-            category,
-            amount,
-            note: note.trim() || undefined,
-          },
-        })
-      } else {
-        await add.mutateAsync({
+    const onError = (err: unknown) => {
+      window.alert(`儲存失敗：${String(err)}`)
+    }
+
+    if (isEdit && editing) {
+      update.mutate(
+        {
+          id: editing.id,
           date: format(date, 'yyyy-MM-dd'),
           kind,
           category,
           amount,
           note: note.trim() || undefined,
-        })
-      }
-      navigate('/transactions')
-    } catch (err) {
-      setError(String(err))
+        },
+        { onError },
+      )
+    } else {
+      add.mutate(
+        {
+          date: format(date, 'yyyy-MM-dd'),
+          kind,
+          category,
+          amount,
+          note: note.trim() || undefined,
+        },
+        { onError },
+      )
     }
+    navigate('/transactions')
   }
 
-  async function handleDelete() {
+  function handleDelete() {
     if (!isEdit || !editing) return
     if (!window.confirm('確定刪除這筆記帳？此操作無法復原。')) return
-    try {
-      await del.mutateAsync(editing._row)
-      navigate('/transactions')
-    } catch (err) {
-      setError(String(err))
-    }
+    del.mutate(editing.id, {
+      onError: (err) => window.alert(`刪除失敗：${String(err)}`),
+    })
+    navigate('/transactions')
   }
 
-  const isSubmitting = add.isPending || update.isPending
 
   // 鍵盤輸入支援（桌機可直接打字、按 Enter 送出）
   // 用 ref 包 handleSubmit 避免每次 render 都重新註冊 listener
@@ -204,7 +206,7 @@ export function TransactionForm() {
   return (
     <div className="h-[100dvh] flex flex-col bg-surface-0 overflow-hidden">
       {/* ── Header：返回 + 支出/收入切換 ── */}
-      <header className="flex items-center px-3 py-3 border-b border-surface-border bg-surface-1">
+      <header className="flex items-center px-3 pt-[max(0.75rem,calc(env(safe-area-inset-top)+0.25rem))] pb-3 border-b border-surface-border bg-surface-1">
         <button
           type="button"
           onClick={() => navigate(-1)}
@@ -429,10 +431,9 @@ export function TransactionForm() {
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={isSubmitting}
-            className="col-start-5 row-start-3 row-span-2 rounded-2xl bg-brand-500 text-white font-medium text-base hover:bg-brand-400 active:bg-brand-600 disabled:opacity-60 transition-colors flex items-center justify-center"
+            className="col-start-5 row-start-3 row-span-2 rounded-2xl bg-brand-500 text-white font-medium text-base hover:bg-brand-400 active:bg-brand-600 transition-colors flex items-center justify-center"
           >
-            {isSubmitting ? '...' : 'OK'}
+            OK
           </button>
             </div>
           </div>

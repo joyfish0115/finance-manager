@@ -4,6 +4,7 @@ import { format } from 'date-fns'
 import { PageHeader } from '@/components/PageHeader'
 import { SubTabs } from '@/components/SubTabs'
 import { MonthlyReport } from '@/components/report/MonthlyReport'
+import { SyncReminder } from '@/components/SyncReminder'
 import { formatCurrency, formatCurrencyMaybeHidden } from '@/lib/format'
 import { useAccounts } from '@/hooks/useAccounts'
 import { useTransactions } from '@/hooks/useTransactions'
@@ -36,6 +37,8 @@ export function Dashboard() {
       />
 
       <SubTabs tabs={TABS} />
+
+      <SyncReminder />
 
       {isReport ? <ReportView /> : <OverviewView />}
     </>
@@ -114,17 +117,17 @@ function OverviewView() {
           ) : accounts && accounts.length > 0 ? (
             <ul className="space-y-4">
               {accounts.map((acc) => (
-                <li key={acc.id} className="flex items-center justify-between gap-3">
+                <li key={acc.id} className="flex items-baseline justify-between gap-3">
                   <div className="min-w-0">
-                    <span className="text-base text-ink-high truncate block leading-tight">
+                    <div className="text-base text-ink-high truncate leading-tight">
                       {acc.bank}
-                    </span>
+                    </div>
                     {/* 用 min-h 保留固定空間，沒有暱稱時也維持兩行高度 */}
-                    <span className="text-sm text-ink-low truncate block leading-tight min-h-[1.25rem] mt-0.5">
+                    <div className="text-sm text-ink-low truncate leading-tight min-h-[1.25rem] mt-0.5">
                       {acc.name || ' '}
-                    </span>
+                    </div>
                   </div>
-                  <span className="font-mono text-base text-ink-high tabular-nums shrink-0">
+                  <span className="font-mono text-base text-ink-high tabular-nums shrink-0 leading-tight">
                     {formatCurrencyMaybeHidden(acc.balance, hidden)}
                   </span>
                 </li>

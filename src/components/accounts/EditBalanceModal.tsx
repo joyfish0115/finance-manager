@@ -6,7 +6,7 @@ import { Modal } from '@/components/ui/Modal'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { useUpdateAccount } from '@/hooks/useAccounts'
-import type { AccountWithRow } from '@/lib/google/accountsApi'
+import type { Account } from '@/types'
 
 // zod v4：用 z.number() + valueAsNumber 取代 z.coerce.number()
 const schema = z.object({
@@ -15,7 +15,7 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>
 
 interface Props {
-  account: AccountWithRow
+  account: Account
   onClose: () => void
 }
 
