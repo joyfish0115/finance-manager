@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Sparkles, AlertCircle } from 'lucide-react'
+import { signIn } from '@/lib/google/auth'
 import { GoogleLogo } from '@/components/ui/GoogleLogo'
 import { useAuthStore } from '@/stores/useAuthStore'
 
@@ -7,17 +8,15 @@ export function Welcome() {
   const [isPending, setIsPending] = useState(false)
   const authError = useAuthStore((s) => s.authError)
   const setAuthError = useAuthStore((s) => s.setAuthError)
-  const signIn = useAuthStore((s) => s.signIn)
 
   const handleSignIn = async () => {
     setIsPending(true)
     setAuthError(null)
     try {
-      await signIn()
+      await signIn() // 會 navigate 到 Google，不會 return
     } catch (err) {
       console.error(err)
-      // store.signIn 已經把錯誤寫進 authError，這裡只需收尾
-    } finally {
+      setAuthError(err instanceof Error ? err.message : String(err))
       setIsPending(false)
     }
   }
@@ -45,7 +44,7 @@ export function Welcome() {
           className="inline-flex items-center justify-center gap-3 w-full rounded-xl bg-white px-5 py-3.5 text-sm font-medium text-gray-800 shadow-sm hover:bg-gray-50 active:bg-gray-100 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
         >
           <GoogleLogo size={18} />
-          {isPending ? '登入中…' : '使用 Google 帳號登入'}
+          {isPending ? '正在前往 Google…' : '使用 Google 帳號登入'}
         </button>
 
         {authError && (

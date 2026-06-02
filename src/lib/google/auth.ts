@@ -1,82 +1,181 @@
 /**
- * Google Identity Services (GIS) Token Model — 純前端授權，不需要 Client Secret。
+ * Google OAuth 2.0 with PKCE — 前端負責 PKCE 流程，
+ * client_secret 由 /api/oauth/* 後端（Vercel Edge Function）保管。
  *
  * 流程：
- *   1. signIn(): 跳出 Google 同意視窗，使用者授權後直接拿到 access_token
- *   2. silentRefresh(): access_token 過期後，靜默向 Google 索取新的（不跳視窗）
- *
- * 沒有 refresh_token、沒有 redirect_uri、沒有 client_secret。
- * 授權範圍與來源由 Google Cloud Console 的「Authorized JavaScript origins」管控。
+ *   1. signIn(): 產生 code_verifier、導向 Google 授權頁
+ *   2. Google 把使用者導回 redirect_uri，URL 帶 ?code=xxx
+ *   3. handleAuthCallback(): 把 code 送到 /api/oauth/exchange 換 access/refresh token
+ *   4. refreshAccessToken(): access_token 過期前打 /api/oauth/refresh 換新的
  */
 
-import { GOOGLE_CONFIG } from './config'
+import {
+  GOOGLE_CONFIG,
+  OAUTH_ENDPOINTS,
+  getRedirectUri,
+} from './config'
 
-// ───────────────────────────────────────── GIS 型別 ──────────────────────────
-
-interface TokenResponse {
-  access_token?: string
-  expires_in?: number
-  scope?: string
-  error?: string
-  error_description?: string
-}
-
-interface TokenClient {
-  callback: (resp: TokenResponse) => void
-  requestAccessToken: (opts?: {
-    prompt?: '' | 'none' | 'consent' | 'select_account'
-  }) => void
-}
-
-declare global {
-  interface Window {
-    google?: {
-      accounts: {
-        oauth2: {
-          initTokenClient: (config: {
-            client_id: string
-            scope: string
-            callback: (resp: TokenResponse) => void
-          }) => TokenClient
-          revoke: (accessToken: string, done?: () => void) => void
-        }
-      }
-    }
-  }
-}
-
-// ───────────────────────────────────────── Public API ────────────────────────
+const STORAGE_KEYS = {
+  verifier: 'fm.oauth.verifier',
+  state: 'fm.oauth.state',
+} as const
 
 export interface TokenSet {
   accessToken: string
-  /** UNIX timestamp（秒）。提早 60 秒視為過期，避免邊界問題 */
+  refreshToken?: string
+  /** UNIX timestamp（秒）。提早 60 秒視為過期 */
   expiresAt: number
   scope: string
 }
 
-/** 第一次登入：彈出 Google 同意視窗（使用者主動點擊，不設超時） */
-export async function signIn(): Promise<TokenSet> {
-  return requestToken('consent')
+// ───────────────────────────────────────── PKCE 工具 ─────────────────────────
+
+function base64UrlEncode(bytes: Uint8Array): string {
+  const binary = String.fromCharCode(...bytes)
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+}
+
+function randomString(length: number): string {
+  const arr = new Uint8Array(length)
+  crypto.getRandomValues(arr)
+  return base64UrlEncode(arr)
+}
+
+async function sha256(input: string): Promise<Uint8Array> {
+  const data = new TextEncoder().encode(input)
+  const hash = await crypto.subtle.digest('SHA-256', data)
+  return new Uint8Array(hash)
+}
+
+// ───────────────────────────────────────── Public API ────────────────────────
+
+/** 把使用者導去 Google 授權頁。回來時 URL 會帶 ?code=xxx&state=yyy */
+export async function signIn(): Promise<void> {
+  const verifier = randomString(64)
+  const challenge = base64UrlEncode(await sha256(verifier))
+  const state = randomString(16)
+
+  // verifier / state 存 sessionStorage（換分頁/重整就清掉，避免重放）
+  sessionStorage.setItem(STORAGE_KEYS.verifier, verifier)
+  sessionStorage.setItem(STORAGE_KEYS.state, state)
+
+  const params = new URLSearchParams({
+    client_id: GOOGLE_CONFIG.clientId,
+    redirect_uri: getRedirectUri(),
+    response_type: 'code',
+    scope: GOOGLE_CONFIG.scopes,
+    code_challenge: challenge,
+    code_challenge_method: 'S256',
+    state,
+    // 取得 refresh_token 需要這兩個
+    access_type: 'offline',
+    prompt: 'consent',
+  })
+
+  window.location.assign(`${OAUTH_ENDPOINTS.authorize}?${params}`)
 }
 
 /**
- * 靜默續期：不顯示視窗，用使用者既有的 Google session 拿新 token。
- *
- * Google 的靜默授權有時不會回呼（被 popup blocker 擋、第三方 cookie 被擋、
- * Google session 過期等），所以這裡加 5 秒超時，避免 App 永遠卡在 loading。
- * 超時或失敗時直接 throw，呼叫端會 fallback 到顯示登入畫面。
+ * 在 App 啟動時呼叫。如果 URL 有 ?code=，就交換 token。
+ * 處理完會把 query string 從 URL 清掉，回傳取得的 token；
+ * 沒有 code 就回傳 null。
  */
-export async function silentRefresh(): Promise<TokenSet> {
-  return requestToken('', 5000)
+export async function handleAuthCallback(): Promise<TokenSet | null> {
+  const url = new URL(window.location.href)
+  const code = url.searchParams.get('code')
+  const state = url.searchParams.get('state')
+  const error = url.searchParams.get('error')
+
+  if (error) {
+    cleanUrl()
+    throw new Error(`Google 授權失敗：${error}`)
+  }
+  if (!code) return null
+
+  const expectedState = sessionStorage.getItem(STORAGE_KEYS.state)
+  const verifier = sessionStorage.getItem(STORAGE_KEYS.verifier)
+  sessionStorage.removeItem(STORAGE_KEYS.state)
+  sessionStorage.removeItem(STORAGE_KEYS.verifier)
+
+  if (!verifier) {
+    cleanUrl()
+    throw new Error(
+      '找不到登入過程的暫存資料，可能是您換了瀏覽器分頁完成登入。請在同一個分頁重新登入。',
+    )
+  }
+  if (!expectedState || state !== expectedState) {
+    cleanUrl()
+    throw new Error(
+      `授權狀態驗證失敗（state mismatch）。expected=${expectedState ?? '(none)'} actual=${state ?? '(none)'}`,
+    )
+  }
+
+  const tokens = await exchangeCodeForTokens(code, verifier)
+  cleanUrl()
+  return tokens
 }
 
-/** 主動撤銷授權（登出時用）。失敗不影響本地登出 */
-export function revokeToken(accessToken: string): void {
-  if (!window.google?.accounts?.oauth2) return
-  try {
-    window.google.accounts.oauth2.revoke(accessToken)
-  } catch {
-    // 撤銷失敗就算了，反正本地 session 一定會清
+async function exchangeCodeForTokens(
+  code: string,
+  verifier: string,
+): Promise<TokenSet> {
+  const res = await fetch(OAUTH_ENDPOINTS.exchange, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      code,
+      code_verifier: verifier,
+      redirect_uri: getRedirectUri(),
+    }),
+  })
+
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '')
+    throw new Error(`交換 token 失敗（${res.status}）：${detail}`)
+  }
+
+  const data = (await res.json()) as {
+    access_token: string
+    refresh_token?: string
+    expires_in: number
+    scope: string
+  }
+
+  return {
+    accessToken: data.access_token,
+    refreshToken: data.refresh_token,
+    expiresAt: nowSeconds() + data.expires_in,
+    scope: data.scope,
+  }
+}
+
+/** 用 refresh_token 換新的 access_token */
+export async function refreshAccessToken(
+  refreshToken: string,
+): Promise<TokenSet> {
+  const res = await fetch(OAUTH_ENDPOINTS.refresh, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refresh_token: refreshToken }),
+  })
+
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '')
+    throw new Error(`Token 續期失敗（${res.status}）：${detail}`)
+  }
+
+  const data = (await res.json()) as {
+    access_token: string
+    expires_in: number
+    scope: string
+  }
+
+  return {
+    accessToken: data.access_token,
+    // refresh 流程通常不會再回傳新的 refresh_token，沿用舊的
+    refreshToken,
+    expiresAt: nowSeconds() + data.expires_in,
+    scope: data.scope,
   }
 }
 
@@ -84,80 +183,14 @@ export function isTokenExpired(tokens: TokenSet, marginSeconds = 60): boolean {
   return nowSeconds() + marginSeconds >= tokens.expiresAt
 }
 
-// ───────────────────────────────────────── 內部實作 ──────────────────────────
-
-let tokenClient: TokenClient | null = null
-
-async function getTokenClient(): Promise<TokenClient> {
-  if (tokenClient) return tokenClient
-  await waitForGis()
-  tokenClient = window.google!.accounts.oauth2.initTokenClient({
-    client_id: GOOGLE_CONFIG.clientId,
-    scope: GOOGLE_CONFIG.scopes,
-    // 每次 requestAccessToken 前會覆寫，這裡只是初始值
-    callback: () => {},
-  })
-  return tokenClient
-}
-
-/** 等待 index.html 載入的 GIS script 就緒 */
-async function waitForGis(timeoutMs = 10_000): Promise<void> {
-  const start = Date.now()
-  while (!window.google?.accounts?.oauth2) {
-    if (Date.now() - start > timeoutMs) {
-      throw new Error('Google 登入服務載入失敗，請檢查網路連線後重新整理頁面。')
-    }
-    await new Promise((r) => setTimeout(r, 50))
-  }
-}
-
-async function requestToken(
-  prompt: '' | 'consent',
-  timeoutMs?: number,
-): Promise<TokenSet> {
-  const client = await getTokenClient()
-  return new Promise<TokenSet>((resolve, reject) => {
-    let settled = false
-    const settle = (fn: () => void) => {
-      if (settled) return
-      settled = true
-      if (timer) clearTimeout(timer)
-      fn()
-    }
-
-    const timer = timeoutMs
-      ? setTimeout(() => {
-          settle(() =>
-            reject(new Error('Google 授權沒有回應，請手動重新登入')),
-          )
-        }, timeoutMs)
-      : null
-
-    client.callback = (resp) => {
-      settle(() => {
-        if (resp.error || !resp.access_token) {
-          reject(
-            new Error(
-              resp.error_description || resp.error || '取得 Google 授權失敗',
-            ),
-          )
-          return
-        }
-        resolve({
-          accessToken: resp.access_token,
-          expiresAt: nowSeconds() + (resp.expires_in ?? 3600),
-          scope: resp.scope ?? GOOGLE_CONFIG.scopes,
-        })
-      })
-    }
-    try {
-      client.requestAccessToken({ prompt })
-    } catch (err) {
-      settle(() => reject(err))
-    }
-  })
-}
-
 function nowSeconds(): number {
   return Math.floor(Date.now() / 1000)
+}
+
+function cleanUrl(): void {
+  // 把 ?code=xxx&state=yyy 從網址清掉，避免使用者按重新整理時又跑一次交換。
+  // 注意要保留 hash（HashRouter 的路由）。
+  const url = new URL(window.location.href)
+  url.search = ''
+  window.history.replaceState({}, document.title, url.toString())
 }
