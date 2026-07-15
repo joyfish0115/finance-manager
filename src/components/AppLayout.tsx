@@ -1,5 +1,5 @@
 import { matchPath, NavLink, Outlet, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Wallet, Landmark } from 'lucide-react'
+import { LayoutDashboard, Wallet } from 'lucide-react'
 import type { ComponentType } from 'react'
 
 interface NavItem {
@@ -18,7 +18,6 @@ const NAV: NavItem[] = [
     alsoActiveOn: ['/settings'],
   },
   { to: '/accounts', label: '帳戶', icon: Wallet, alsoActiveOn: ['/recurring'] },
-  { to: '/big-expenses', label: '大額消費', icon: Landmark },
 ]
 
 function useTabActive(item: NavItem) {
@@ -49,7 +48,7 @@ export function AppLayout() {
 
       {/* 手機底部 tab bar */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 border-t border-surface-border bg-surface-1/95 backdrop-blur safe-bottom">
-        <div className="grid grid-cols-3">
+        <div className="grid grid-cols-2">
           {NAV.map((item) => (
             <MobileNavItem key={item.to} item={item} />
           ))}
