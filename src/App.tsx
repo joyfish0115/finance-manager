@@ -1,11 +1,10 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { createHashRouter, RouterProvider } from 'react-router-dom'
+import { createHashRouter, Navigate, RouterProvider } from 'react-router-dom'
 import { AppLayout } from '@/components/AppLayout'
 import { RequireAuth } from '@/components/RequireAuth'
 import { Dashboard } from '@/pages/Dashboard'
 import { Accounts } from '@/pages/Accounts'
-import { Transactions } from '@/pages/Transactions'
-import { TransactionForm } from '@/pages/TransactionForm'
+import { BigExpenses } from '@/pages/BigExpenses'
 import { SettingsPage } from '@/pages/Settings'
 import { Welcome } from '@/pages/Welcome'
 import { useBootstrap } from '@/hooks/useBootstrap'
@@ -26,21 +25,19 @@ const router = createHashRouter([
     element: <RequireAuth />,
     children: [
       { path: '/welcome', element: <Welcome /> },
-      // 新增/編輯記帳：全螢幕頁面（沒有 AppLayout 的 tab bar）
-      { path: '/transactions/new', element: <TransactionForm /> },
-      { path: '/transactions/:id/edit', element: <TransactionForm /> },
       {
         path: '/',
         element: <AppLayout />,
         children: [
-          // 「總覽」tab：概覽 + 月報
-          { index: true, element: <Dashboard /> },
+          // 預設頁：直接跳到總覽
+          { index: true, element: <Navigate to="/report" replace /> },
+          // 「總覽」tab
           { path: 'report', element: <Dashboard /> },
           // 「帳戶」tab：帳戶餘額 + 固定金流
           { path: 'accounts', element: <Accounts /> },
           { path: 'recurring', element: <Accounts /> },
-          // 「記帳」tab
-          { path: 'transactions', element: <Transactions /> },
+          // 「大額消費」tab（記帳完整功能已隱藏，見 Transactions.tsx / TransactionForm.tsx）
+          { path: 'big-expenses', element: <BigExpenses /> },
           // 設定（從總覽右上角齒輪進入）
           { path: 'settings', element: <SettingsPage /> },
         ],

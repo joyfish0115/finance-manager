@@ -1,31 +1,29 @@
 import { matchPath, NavLink, Outlet, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Wallet, Receipt } from 'lucide-react'
+import { LayoutDashboard, Wallet, Landmark } from 'lucide-react'
 import type { ComponentType } from 'react'
 
 interface NavItem {
   to: string
   label: string
   icon: ComponentType<{ size?: number }>
-  /** 哪些 path 也算這個 tab 是 active 的（例如 /report 也算屬於「總覽」這個 tab） */
+  /** 哪些 path 也算這個 tab 是 active 的（例如 /settings 也算屬於「總覽」這個 tab） */
   alsoActiveOn?: string[]
 }
 
 const NAV: NavItem[] = [
   {
-    to: '/',
+    to: '/report',
     label: '總覽',
     icon: LayoutDashboard,
-    alsoActiveOn: ['/report', '/settings'],
+    alsoActiveOn: ['/settings'],
   },
   { to: '/accounts', label: '帳戶', icon: Wallet, alsoActiveOn: ['/recurring'] },
-  { to: '/transactions', label: '記帳', icon: Receipt },
+  { to: '/big-expenses', label: '大額消費', icon: Landmark },
 ]
 
 function useTabActive(item: NavItem) {
   const { pathname } = useLocation()
-  if (item.to === '/' && pathname === '/') return true
-  if (item.to !== '/' && matchPath({ path: item.to, end: false }, pathname))
-    return true
+  if (matchPath({ path: item.to, end: false }, pathname)) return true
   return item.alsoActiveOn?.some((p) => matchPath({ path: p, end: false }, pathname)) ?? false
 }
 

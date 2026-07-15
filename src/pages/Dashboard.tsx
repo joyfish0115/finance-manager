@@ -1,30 +1,18 @@
-import { Link, useLocation } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { Settings as SettingsIcon, Loader2, Eye, EyeOff } from 'lucide-react'
-import { format } from 'date-fns'
 import { PageHeader } from '@/components/PageHeader'
-import { SubTabs } from '@/components/SubTabs'
-import { MonthlyReport } from '@/components/report/MonthlyReport'
 import { SyncReminder } from '@/components/SyncReminder'
 import { formatCurrency, formatCurrencyMaybeHidden } from '@/lib/format'
 import { useAccounts } from '@/hooks/useAccounts'
-import { useTransactions } from '@/hooks/useTransactions'
 import { useRecurring } from '@/hooks/useRecurring'
 import { usePrivacyStore } from '@/stores/usePrivacyStore'
 
-const TABS = [
-  { to: '/', label: '概覽', end: true },
-  { to: '/report', label: '月報' },
-]
-
 export function Dashboard() {
-  const { pathname } = useLocation()
-  const isReport = pathname === '/report'
-
   return (
     <>
       <PageHeader
         title="總覽"
-        subtitle={isReport ? '本月收支與分類統計' : '快速掌握目前財務狀況'}
+        subtitle="快速掌握目前財務狀況"
         actions={
           <Link
             to="/settings"
@@ -36,11 +24,9 @@ export function Dashboard() {
         }
       />
 
-      <SubTabs tabs={TABS} />
-
       <SyncReminder />
 
-      {isReport ? <ReportView /> : <OverviewView />}
+      <OverviewView />
     </>
   )
 }
@@ -49,17 +35,11 @@ export function Dashboard() {
 
 function OverviewView() {
   const { data: accounts, isLoading: accountsLoading } = useAccounts()
-  const { data: transactions, isLoading: txLoading } = useTransactions()
   const { data: recurring, isLoading: recurringLoading } = useRecurring()
   const hidden = usePrivacyStore((s) => s.hidden)
   const togglePrivacy = usePrivacyStore((s) => s.toggle)
 
   const total = accounts?.reduce((sum, a) => sum + a.balance, 0) ?? 0
-  const monthKey = format(new Date(), 'yyyy-MM')
-  const monthlyExpense =
-    transactions
-      ?.filter((t) => t.kind === '支出' && t.date.startsWith(monthKey))
-      .reduce((s, t) => s + t.amount, 0) ?? 0
 
   // 本月固定支出（只算「固定支出」類型，「投資」不計入）
   const monthlyFixed =
@@ -74,8 +54,8 @@ function OverviewView() {
 
   return (
     <>
-      {/* 三張摘要卡片 */}
-      <div className="px-5 md:px-8 py-6 grid gap-4 md:grid-cols-3">
+      {/* 兩張摘要卡片 */}
+      <div className="px-5 md:px-8 py-6 grid gap-4 md:grid-cols-2">
         <SummaryCard
           label="總資產"
           value={accountsLoading ? '—' : formatCurrencyMaybeHidden(total, hidden)}
@@ -97,11 +77,6 @@ function OverviewView() {
           label="本月固定支出"
           value={recurringLoading ? '—' : formatCurrency(monthlyFixed)}
           loading={recurringLoading}
-        />
-        <SummaryCard
-          label="本月記帳支出"
-          value={txLoading ? '—' : formatCurrency(monthlyExpense)}
-          loading={txLoading}
         />
       </div>
 
@@ -178,12 +153,6 @@ function OverviewView() {
       </section>
     </>
   )
-}
-
-// ─── 月報 ───────────────────────────────────────────────────────────────────
-
-function ReportView() {
-  return <MonthlyReport />
 }
 
 // ─── 共用元件 ────────────────────────────────────────────────────────────────
